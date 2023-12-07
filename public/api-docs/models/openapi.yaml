@@ -28,6 +28,8 @@ tags:
     description: 'User login'
   - name: '👥 Users'
     description: 'User management'
+  - name: 'Results'
+    description: 'Result management'
 paths:
   /login_check:
     post:
@@ -220,6 +222,35 @@ paths:
             Allow:
               $ref: '#/components/headers/Allow'
 
+  /results:
+    get:
+      tags:
+        - 'Results'
+      summary: Retrieves the collection of Result resources.
+      description: 'Return all results from the system that the current user has access to'
+      operationId: api_results_cget
+      security:
+        - MiWApiSecurity: []
+      responses:
+        '200':
+          description: 'Array of results'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results: { description: 'Results array', type: array, items: { $ref: '#/components/schemas/Result' } }
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+
+
 components:
   headers:
     ETag:
@@ -268,6 +299,39 @@ components:
               href: /api/v1/users
             self:
               href: /api/v1/users/1508
+    Result:
+      type: object
+      properties:
+        id:
+          description: 'Result Id'
+          type: integer
+          format: int64
+        result:
+          description: 'Result value'
+          type: integer
+          format: int64
+        user:
+          description: 'User who score the result'
+          $ref: '#/components/schemas/User'
+        time:
+          description: 'Result date in Y-m-d H:i:s format'
+          type: datetime
+          format: 'Y-m-d H:i:s'
+      example:
+        result:
+          id: 1
+          result: 123
+          user:
+            id: 1508
+            email: 'miw.etsisi@upm.es'
+            roles: [ 'ROLE_USER' ]
+            _links:
+              parent:
+                href: /api/v1/users
+              self:
+                href: /api/v1/users/1508
+          time: '2023-12-12 10:10:10'
+
     Message:
       type: object
       description: HTTP response message
