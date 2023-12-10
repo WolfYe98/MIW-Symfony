@@ -21,28 +21,12 @@ class ResultRepository extends ServiceEntityRepository
         parent::__construct($registry, Result::class);
     }
 
-//    /**
-//     * @return Result[] Returns an array of Result objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('r')
-//            ->andWhere('r.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('r.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
-
-//    public function findOneBySomeField($value): ?Result
-//    {
-//        return $this->createQueryBuilder('r')
-//            ->andWhere('r.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function insert(Result $result):void{
+        $this->getEntityManager()->persist($result);
+        $this->getEntityManager()->flush();
+    }
+    public function remove(Result $result): void{
+        $this->getEntityManager()->remove($result);
+        $this->getEntityManager()->flush();
+    }
 }

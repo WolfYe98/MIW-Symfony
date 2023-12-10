@@ -7,6 +7,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation as Serializer;
 use JsonSerializable;
+use Symfony\Config\JmsSerializer\Handlers\DatetimeConfig;
+
 #[ORM\Entity(repositoryClass: ResultRepository::class)]
 #[ORM\Table(name: "results")]
 #[Serializer\XmlNamespace(uri: "http://www.w3.org/2005/Atom", prefix: "atom")]
@@ -82,6 +84,10 @@ class Result implements JsonSerializable
 
         return $this;
     }
+    public function setTimeFromString(string $time):static{
+        $this->time = \DateTime::createFromFormat('Y-m-d H:i:s',$time);
+        return $this;
+    }
 
     public function getUser(): ?User
     {
@@ -102,5 +108,10 @@ class Result implements JsonSerializable
             self::USER_ATTR=>$this->getUser(),
             self::TIME_ATTR=>$this->getTime()
         ];
+    }
+    public function updateResultFromPostData(array $postData): void{
+        $this->result = $postData[self::RESULT_ATTR];
+        $this->user = $postData[self::USER_ATTR];
+        $this->setTimeFromString($postData[self::TIME_ATTR]);
     }
 }

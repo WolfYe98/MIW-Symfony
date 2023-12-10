@@ -245,11 +245,133 @@ paths:
               $ref: '#/components/headers/ETag'
         '401':
           $ref: '#/components/responses/401_Unauthorized_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    post:
+      tags: [ 'Results' ]
+      summary: Creates a Result resource.
+      description: 'Creates a new result. _NOTE: if the user is null, the current user will be used_'
+      operationId: api_results_post
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBody'
+      responses:
+        '201':
+          description: '`Created`: result created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '400':
+          $ref: '#/components/responses/400_BadRequest_Response_Result'
+    options:
+      tags: [ 'Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
+  /results/{resultId}:
+    get:
+      tags: [ 'Results' ]
+      summary: Retrieves a Result resource based on a single ID.
+      description: 'Returns the result identified by `resultId`.'
+      operationId: api_results_get
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      security:
+        - MiWApiSecurity: [ ]
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+    put:
+      tags: [ 'Results' ]
+      summary: Updates the Result resource.
+      description: 'Updates the result identified by `resultId`.'
+      operationId: api_results_put
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+        - $ref: '#/components/parameters/ifMatchParam'
+      security:
+        - MiWApiSecurity: [ ]
+      requestBody:
+        $ref: '#/components/requestBodies/ResultRequestBody'
+      responses:
+        '209':
+          description: '`Content Returned`: result previously existed and is now updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+        '400':
+          $ref: '#/components/responses/400_BadRequest_Response_Result'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
+        '403':
+          $ref: '#/components/responses/403_Forbidden_Response'
+        '404':
+          $ref: '#/components/responses/404_Resource_Not_Found_Response'
+        '412':
+          $ref: '#/components/responses/412_Precondition_Failed_Response'
+    delete:
+      tags: [ 'Results' ]
+      summary: Removes the Result resource.
+      description: 'Deletes the result identified by `resultId`.'
+      operationId: api_results_delete
+      parameters:
+        - $ref: '#/components/parameters/resultId'
+      security:
+        - MiWApiSecurity: [ ]
+      responses:
+        '204':
+          description: 'Result deleted &lt;Response body is empty&gt;'
+        '401':
+          $ref: '#/components/responses/401_Unauthorized_Response'
         '403':
           $ref: '#/components/responses/403_Forbidden_Response'
         '404':
           $ref: '#/components/responses/404_Resource_Not_Found_Response'
 
+
+  /results/{userId}:
+    options:
+      tags: [ 'Results' ]
+      summary: Provides the list of HTTP supported methods.
+      description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
+      operationId: api_results_options_id
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '204':
+          description: '`Allow` header _&lt;Response body is empty&gt;_'
+          headers:
+            Allow:
+              $ref: '#/components/headers/Allow'
 
 components:
   headers:
@@ -324,7 +446,7 @@ components:
           user:
             id: 1508
             email: 'miw.etsisi@upm.es'
-            roles: [ 'ROLE_USER' ]
+            roles: [ 'ROLE_USER','ROLE_ADMIN' ]
             _links:
               parent:
                 href: /api/v1/users
@@ -350,6 +472,15 @@ components:
   responses:
     400_BadRequest_Response:
       description: "`BAD REQUEST`: e-mail already exists"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+          examples:
+            response-400:
+              $ref: '#/components/examples/response-400'
+    400_BadRequest_Response_Result:
+      description: "`BAD REQUEST`: the request body has some errors"
       content:
         application/json:
           schema:
@@ -394,7 +525,7 @@ components:
             response-412:
               $ref: '#/components/examples/response-412'
     422_UnprocessableEntity_Response:
-      description: "`UNPROCESSABLE ENTITY`: e-mail or password is left out"
+      description: "`UNPROCESSABLE ENTITY`: some fields are left out"
       content:
         application/json:
           schema:
@@ -428,6 +559,30 @@ components:
               email: User_email@example.com
               password: User_password
               roles: [ 'ROLE_USER', 'ROLE_ADMIN' ]
+    ResultRequestBody:
+      description: '`Result` data'
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              result:
+                description: 'Result scored'
+                type: integer
+                format: int64
+              user:
+                description: 'User email'
+                type: string
+                format: email
+              time:
+                description: 'Result time'
+                type: datetime
+                format: 'Y-m-d H:i:s'
+            example:
+              result: 1
+              user: 'myuseremai@test.com'
+              time: '2023-12-12 10:10:10'
     LoginRequestBody:
       description: Registered user **e-mail** and **password**
       required: true
@@ -464,6 +619,12 @@ components:
       description: 'ID of user'
       required: true
       schema: { "type": "integer", pattern: '^\d+$' }
+    resultId:
+      name: resultId
+      in: path
+      description: 'ID of result'
+      required: true
+      schema: { "type": "integer", pattern: '^\d+$' }
     ifMatchParam:
       name: If-Match
       in: header
@@ -497,7 +658,7 @@ components:
     response-422:
       value:
         code: 422
-        message: 'UNPROCESSABLE ENTITY: e-mail or password is left out'
+        message: 'UNPROCESSABLE ENTITY: some fields are left out'
 
   securitySchemes:
     MiWApiSecurity:
