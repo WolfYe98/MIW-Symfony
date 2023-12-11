@@ -487,7 +487,7 @@ components:
             $ref: '#/components/schemas/Message'
           examples:
             response-400:
-              $ref: '#/components/examples/response-400'
+              $ref: '#/components/examples/response-400-result'
     401_Unauthorized_Response:
       description: '`Unauthorized`: invalid Authorization header'
       content:
@@ -639,6 +639,10 @@ components:
       value:
         code: 400
         message: 'BAD REQUEST: e-mail already exists'
+    response-400-result:
+      value:
+        code: 400
+        message: 'BAD REQUEST: some field are incorrect'
     response-401:
       value:
         code: 401
