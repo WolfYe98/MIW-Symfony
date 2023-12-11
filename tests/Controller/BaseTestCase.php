@@ -3,6 +3,7 @@
 namespace App\Tests\Controller;
 
 use App\Entity\Message;
+use App\Entity\Result;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -34,6 +35,10 @@ class BaseTestCase extends WebTestCase
 
     /** @var array<string,mixed> $role_admin Role Admin */
     protected static array $role_admin;
+    /** @var array<string,mixed> $role_admin Role Admin */
+    protected static array $role_user_aux;
+
+    protected static EntityManagerInterface $entityManager;
 
     /**
      * This method is called before the first test of this test class is run.
@@ -51,6 +56,11 @@ class BaseTestCase extends WebTestCase
             User::EMAIL_ATTR => $_ENV['ROLE_USER_EMAIL'],
             User::PASSWD_ATTR => $_ENV['ROLE_USER_PASSWD'],
         ];
+        // Role user aux
+        self::$role_user_aux = [
+            User::EMAIL_ATTR => 'AUX_USER_RESULT',
+            User::PASSWD_ATTR => 'AUX_USER_RESULT',
+        ];
 
         // Role admin
         self::$role_admin = [
@@ -64,7 +74,7 @@ class BaseTestCase extends WebTestCase
                 ->getContainer()
                 ->get('doctrine')
                 ->getManager();
-
+            self::$entityManager = $e_manager;
             $metadata = $e_manager
                 ->getMetadataFactory()
                 ->getAllMetadata();
@@ -106,8 +116,27 @@ class BaseTestCase extends WebTestCase
         );
         $role_user->setPassword($hashedPassword);
 
+        $role_user_aux = new User(
+            self::$role_user_aux[User::EMAIL_ATTR],
+            self::$role_user_aux[User::PASSWD_ATTR]
+        );
+        // hash the password (based on the security.yaml config for the $user class)
+        $hashedPassword = $passwordHasher->hashPassword(
+            $role_user,
+            self::$role_user_aux[User::PASSWD_ATTR]
+        );
+        $role_user_aux->setPassword($hashedPassword);
+
         $e_manager->persist($role_admin);
         $e_manager->persist($role_user);
+        $e_manager->persist($role_user_aux);
+        $e_manager->flush();
+        $result1 =new Result(1,$role_admin,new \DateTime('now'));
+        $result1->setId(1);
+        $result2 =new Result(2,$role_user,new \DateTime('now'));
+        $result2->setId(2);
+        $e_manager->persist($result1);
+        $e_manager->persist($result2);
         $e_manager->flush();
     }
 

@@ -49,6 +49,14 @@ class Result implements JsonSerializable
     )]
     private ?User $user = null;
 
+    public function __construct(int $result=0, ?User $user=null, ?\Datetime $time=null)
+    {
+        $this->result = $result;
+        $this->id = 0;
+        $this->user = $user;
+        $this->time = $time;
+    }
+
     public function getId(): ?int
     {
         return $this->id;

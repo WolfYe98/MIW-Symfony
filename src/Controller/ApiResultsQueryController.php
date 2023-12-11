@@ -56,7 +56,7 @@ class ApiResultsQueryController extends AbstractController implements ApiResults
             $results = $this->resultRepository->findAll();
         }
         if(empty($results)){
-            return $this->createNotFoundResponse('Results not found');
+            return $this->createNotFoundResponse($format);
         }
         $etag = md5((string) json_encode($results, JSON_THROW_ON_ERROR));
         if (($etags = $request->getETags()) && (in_array($etag, $etags) || in_array('*', $etags))) {
@@ -211,7 +211,7 @@ class ApiResultsQueryController extends AbstractController implements ApiResults
         $body = (string) $request->getContent();
         $postData = json_decode($body, true);
         if(!isset($postData[Result::RESULT_ATTR],$postData[Result::TIME_ATTR])){
-            return Utils::errorMessage(Response::HTTP_BAD_REQUEST, 'The result field or the time field are not passed', $format);
+            return $this->createBadRequestResponse($format,'The result field or the time field are not passed');
         }
         $user = null;
         if(isset($postData[Result::USER_ATTR])){
