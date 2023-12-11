@@ -9,13 +9,21 @@ use Generator;
 use JetBrains\PhpStorm\ArrayShape;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use function PHPUnit\Framework\assertEquals;
+use function PHPUnit\Framework\assertTrue;
 
 class ApiResultsControllerTest extends BaseTestCase
 {
     private const RUTA_API = '/api/v1/results';
+    private const RESULTS_ATTR = "results";
+    /**
+     * @var array<string,string>
+     */
     private array $roleUserHeaders;
+    /**
+     * @var array<string,string>
+     */
     private array $roleAdminHeaders;
-
     protected function setUp(): void
     {
         $this->roleUserHeaders = self::getTokenHeaders(self::$role_user[User::EMAIL_ATTR],self::$role_user[User::PASSWD_ATTR]);
@@ -224,6 +232,216 @@ class ApiResultsControllerTest extends BaseTestCase
         );
         $response = self::$client->getResponse();
         self::checkResponseErrorMessage($response,404);
+    }
+
+    /**
+     * Test CGET /results 200 OK RoleUser
+     *
+     * @return string Etag header
+     */
+    public function testResultsStatus200OkCGet_roleUser():string{
+        self::$client->request(
+            Request::METHOD_GET,
+            self::RUTA_API,
+            [],
+            [],
+            $this->roleUserHeaders
+        );
+        $response = self::$client->getResponse();
+        self::assertTrue($response->isSuccessful());
+        self::assertNotEmpty($response->getContent());
+        $results = json_decode($response->getContent(),true);
+        self::assertNotEmpty($results);
+        self::assertTrue(isset($results[self::RESULTS_ATTR]));
+        self::assertCount(1,$results[self::RESULTS_ATTR]);
+        return (string) $response->getEtag();
+    }
+
+    /**
+     * @param string $etag Etag received from other test
+     * @return void
+     * @depends testResultsStatus200OkCGet_roleUser
+     */
+    public function testResultsStatus304NotModified(string $etag):void{
+        $headers = array_merge($this->roleUserHeaders,['HTTP_If-None-Match'=>[$etag]]);
+        self::$client->request(
+            Request::METHOD_GET,
+            self::RUTA_API,
+            [],
+            [],
+            $headers
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(Response::HTTP_NOT_MODIFIED, $response->getStatusCode());
+    }
+
+    /**
+     * Test POST /results 201 CREATED
+     * @return array
+     * @depends testResultsStatus200OkCGet_roleAdmin
+     */
+    public function testResultsPost201Created():array{
+        $arr = [Result::RESULT_ATTR=>1,Result::USER_ATTR=>self::$role_user_aux[User::EMAIL_ATTR],Result::TIME_ATTR=>'2023-12-12 10:10:10'];
+        $json = json_encode($arr);
+        self::$client->request(
+            Request::METHOD_POST,
+            self::RUTA_API,
+            [],
+            [],
+            $this->roleAdminHeaders,
+            strval($json)
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(Response::HTTP_CREATED,$response->getStatusCode());
+        assertTrue($response->isSuccessful());
+        self::assertJson(strval($response->getContent()));
+        $result = json_decode(strval($response->getContent()),true)[Result::RESULT_ATTR];
+        self::assertNotEmpty($result['id']);
+        self::assertSame($arr[Result::RESULT_ATTR],$result[Result::RESULT_ATTR]);
+        self::assertNotEmpty($result[Result::USER_ATTR]);
+        self::assertNotEmpty($result[Result::TIME_ATTR]);
+        return $result;
+    }
+
+    /**
+     * Test GET /results/{resultId} 200 OK
+     *
+     * @param array<int,string,mixed,\DateTime> $result
+     * @return array<string,int> Etag and resultId
+     * @depends testResultsPost201Created
+     */
+    public function testResultsGet200Ok(array $result):array{
+        $id = $result['id'];
+        self::$client->request(
+            Request::METHOD_GET,
+            self::RUTA_API.'/'.$id,
+            [],
+            [],
+            $this->roleAdminHeaders
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(Response::HTTP_OK,$response->getStatusCode());
+        self::assertTrue($response->isSuccessful());
+        self::assertJson(strval($response->getContent()));
+        $result = json_decode(strval($response->getContent()),true);
+        self::assertNotEmpty($result);
+        return ['Etag'=>(string) $response->getEtag(),'id'=>$id];
+    }
+
+    /**
+     * Test GET /results/{resultId} 304 NOT_MODIFIED
+     * @param array<string,int> $etagAndId Etag and resultId array
+     * @depends testResultsGet200Ok
+     */
+    public function testResultsGet304NotModified(array $etagAndId): void{
+        $etag = $etagAndId['Etag'];
+        $id = $etagAndId['id'];
+        $headers = array_merge($this->roleAdminHeaders,['HTTP_If-None-Match'=>[$etag]]);
+        self::$client->request(
+            Request::METHOD_GET,
+            self::RUTA_API."/$id",
+            [],
+            [],
+            $headers
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(Response::HTTP_NOT_MODIFIED, $response->getStatusCode());
+    }
+
+    /**
+     * Test PUT /results/{resultId} 209 CONTENT_UPDATED
+     * @param array<string,int> $etagAndId
+     * @return void
+     * @depends testResultsGet200Ok
+     * @depends testResultsGet304NotModified
+     */
+    public function testResultsPut209ContentUpdated(array $etagAndId):void{
+        $postData = [
+            Result::RESULT_ATTR=>100,
+            Result::TIME_ATTR=>'2023-12-12 10:12:12'
+        ];
+        $id = $etagAndId['id'];
+        $etag = $etagAndId['Etag'];
+        self::$client->request(
+            Request::METHOD_PUT,
+            self::RUTA_API."/$id",
+            [],
+            [],
+            array_merge(
+                $this->roleAdminHeaders,
+                ['HTTP_If-Match'=>$etag]
+            ),
+            strval(json_encode($postData))
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(209,$response->getStatusCode());
+        $body = $response->getContent();
+        self::assertJson(strval($body));
+        $result = json_decode(strval($body),true);
+        self::assertSame($id,$result[Result::RESULT_ATTR]['id']);
+    }
+
+    /**
+     * Test PUT /results/{resultId} 412 HTTP_PRECONDITION_FAILED
+     * @return void
+     */
+    public function testResultsPut412PreconditionFailed():void{
+        $headers = array_merge($this->roleAdminHeaders,['HTTP_If-Match'=>'']);
+        $postData = [
+            Result::RESULT_ATTR=>100,
+            Result::TIME_ATTR=>'2023-12-12 10:12:12'
+        ];
+        self::$client->request(
+            Request::METHOD_PUT,
+            self::RUTA_API.'/1',
+            [],
+            [],
+            $headers,
+            strval(json_encode($postData))
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(Response::HTTP_PRECONDITION_FAILED,$response->getStatusCode());
+    }
+
+
+    /**
+     * Test CGET /results 200 OK RoleAdmin
+     *
+     * @return void
+     */
+    public function testResultsStatus200OkCGet_roleAdmin():void{
+        self::$client->request(
+            Request::METHOD_GET,
+            self::RUTA_API,
+            [],
+            [],
+            $this->roleAdminHeaders
+        );
+        $response = self::$client->getResponse();
+        self::assertTrue($response->isSuccessful());
+        self::assertNotEmpty($response->getContent());
+        $results = json_decode($response->getContent(),true);
+        self::assertNotEmpty($results);
+        self::assertTrue(isset($results[self::RESULTS_ATTR]));
+        self::assertCount(2,$results[self::RESULTS_ATTR]);
+    }
+
+    /**
+     * @return void
+     * @depends testResultsGet200Ok
+     * @depends testResultsStatus200OkCGet_roleAdmin
+     * @depends testResultStatus403Forbidden
+     */
+    public function testResultsDelete204NoContent(): void{
+        self::$client->request(
+            Request::METHOD_DELETE,
+            self::RUTA_API.'/1',
+            [],
+            [],
+            $this->roleAdminHeaders
+        );
+        $response = self::$client->getResponse();
+        self::assertSame(Response::HTTP_NO_CONTENT,$response->getStatusCode());
     }
 
     /**
