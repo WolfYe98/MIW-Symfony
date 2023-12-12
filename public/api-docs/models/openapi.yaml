@@ -283,7 +283,7 @@ paths:
           headers:
             Allow:
               $ref: '#/components/headers/Allow'
-  /results/{resultId}:
+  '/results/{resultId}':
     get:
       tags: [ 'Results' ]
       summary: Retrieves a Result resource based on a single ID.
@@ -356,16 +356,13 @@ paths:
           $ref: '#/components/responses/403_Forbidden_Response'
         '404':
           $ref: '#/components/responses/404_Resource_Not_Found_Response'
-
-
-  /results/{userId}:
     options:
       tags: [ 'Results' ]
       summary: Provides the list of HTTP supported methods.
       description: 'Return a `Allow` header with a comma separated list of HTTP supported methods.'
       operationId: api_results_options_id
       parameters:
-        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/resultId'
       responses:
         '204':
           description: '`Allow` header _&lt;Response body is empty&gt;_'

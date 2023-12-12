@@ -43,6 +43,8 @@ class ApiResultsControllerTest extends BaseTestCase
             $response->getStatusCode()
         );
         self::assertNotEmpty($response->headers->get('Allow'));
+        $options = 'GET,POST,OPTIONS';
+        self::assertEquals($options,$response->headers->get('Allow'));
 
         // OPTIONS /api/v1/results/{id}
         self::$client->request(
@@ -55,7 +57,7 @@ class ApiResultsControllerTest extends BaseTestCase
             $response->getStatusCode()
         );
         self::assertNotEmpty($response->headers->get('Allow'));
-        $options = 'GET,PUT,DELETE,POST,OPTIONS';
+        $options = 'GET,PUT,DELETE,OPTIONS';
         self::assertEquals($options,$response->headers->get('Allow'));
     }
     /**
