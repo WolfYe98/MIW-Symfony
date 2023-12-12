@@ -36,7 +36,9 @@ Para borrar un resultado, al igual que `GET`, el usuario que **NO** sea `ROLE_AD
 Al borrar el resultado, la respuesta devuelta será un `204 NO CONTENT`.
 
 ## OPTIONS
-Esta es la única operación que se puede usar sin loggear, si un usuario existe, podrá hacer todas las operaciones y sino, sólamente OPTIONS.
+Esta es la única operación que se puede usar sin loggear, las operaciones que se pueden realizar en una ruta son:
+1. Para `/results`: `GET,POST,OPTIONS`
+2. Para `/results/{resultId}`: `GET,PUT,DELETE,OPTIONS`
 
 
 ## api-doc
